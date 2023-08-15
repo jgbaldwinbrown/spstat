@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jgbaldwinbrown/normalizer/pkg"
+	"github.com/jgbaldwinbrown/spstat/pkg"
 	"os"
 	"flag"
 	"fmt"
@@ -22,6 +22,6 @@ func main() {
 		panic(fmt.Errorf("missing -c"))
 	}
 
-	e := normalizer.RunAddAfrac(*inpp, os.Stdout, *hitscolp, *countcolp)
+	e := spstat.RunAddAfrac(*inpp, os.Stdout, *hitscolp, *countcolp)
 	if e != nil { panic(e) }
 }

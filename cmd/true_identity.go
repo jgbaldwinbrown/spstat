@@ -1,9 +1,9 @@
 package main
 
 import (
-	"github.com/jgbaldwinbrown/normalizer/pkg"
+	"github.com/jgbaldwinbrown/spstat/pkg"
 )
 
 func main() {
-	normalizer.RunTrueIdentities()
+	spstat.RunTrueIdentities()
 }

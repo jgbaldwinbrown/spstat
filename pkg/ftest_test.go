@@ -1,4 +1,4 @@
-package normalizer
+package spstat
 
 import (
 	"fmt"

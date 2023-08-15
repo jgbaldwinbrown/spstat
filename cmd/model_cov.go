@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jgbaldwinbrown/normalizer/pkg"
+	"github.com/jgbaldwinbrown/spstat/pkg"
 	"os"
 	"flag"
 	"fmt"
@@ -22,6 +22,6 @@ func main() {
 		panic(fmt.Errorf("missing -indep"))
 	}
 
-	e := normalizer.RunLinearModelCoverage(*inpp, os.Stdout, *valcolp, *indepcolp)
+	e := spstat.RunLinearModelCoverage(*inpp, os.Stdout, *valcolp, *indepcolp)
 	if e != nil { panic(e) }
 }

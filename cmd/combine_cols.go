@@ -2,7 +2,7 @@ package main
 
 import (
 	"strings"
-	"github.com/jgbaldwinbrown/normalizer/pkg"
+	"github.com/jgbaldwinbrown/spstat/pkg"
 	"os"
 	"flag"
 	"fmt"
@@ -25,6 +25,6 @@ func main() {
 
 	cols := strings.Split(*colsp, ",")
 
-	e := normalizer.RunColCombine(*inpp, os.Stdout, cols, *sepp)
+	e := spstat.RunColCombine(*inpp, os.Stdout, cols, *sepp)
 	if e != nil { panic(e) }
 }

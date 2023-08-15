@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jgbaldwinbrown/normalizer/pkg"
+	"github.com/jgbaldwinbrown/spstat/pkg"
 	"os"
 	"flag"
 	"fmt"
@@ -26,6 +26,6 @@ func main() {
 		panic(fmt.Errorf("missing -testcol"))
 	}
 
-	e := normalizer.RunFullTTest(*inpp, os.Stdout, *valcolp, *bloodcolp, *testcolp)
+	e := spstat.RunFullTTest(*inpp, os.Stdout, *valcolp, *bloodcolp, *testcolp)
 	if e != nil { panic(e) }
 }

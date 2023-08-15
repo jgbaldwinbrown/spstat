@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/jgbaldwinbrown/normalizer/pkg"
+	"github.com/jgbaldwinbrown/spstat/pkg"
 	"strings"
 	"os"
 	"flag"
@@ -28,6 +28,6 @@ func main() {
 		panic(fmt.Errorf("could not parse -id %v", *idcolsp))
 	}
 
-	e := normalizer.Run(*inpp, os.Stdout, *valcolp, idcols)
+	e := spstat.Run(*inpp, os.Stdout, *valcolp, idcols)
 	if e != nil { panic(e) }
 }
