@@ -55,6 +55,29 @@ func Open(path string) (*csv.Reader, *gzip.Reader, *os.File, error) {
 	return cr, gr, f, nil
 }
 
+func NamedColsFunc(names []string) func(line []string, outbuf []int) ([]int, error) {
+	h := handle("NamedColsFunc: %w")
+
+	return func(line []string, outbuf []int) ([]int, error) {
+		idxs := outbuf[:0]
+
+		for _, name := range names {
+			for i, col := range line {
+				if name == col {
+					idxs = append(idxs, i)
+					break
+				}
+			}
+		}
+
+		if len(idxs) != len(names) {
+			return nil, h(fmt.Errorf("len(idxs) %v != len(names) %v", len(idxs), len(names)))
+		}
+
+		return idxs, nil
+	}
+}
+
 func NamedCols(path string, names []string) ([]int, error) {
 	h := handle("NamedCols: %w")
 
@@ -93,8 +116,24 @@ func ValCol(path, valname string) (int, error) {
 	return cols[0], nil
 }
 
+func ValColFunc(valname string) func(line []string, buf []int) (int, error) {
+	colsf := NamedColsFunc([]string{valname})
+	h := handle("ValColFunc: %w")
+
+	return func(line []string, buf []int) (int, error) {
+		cols, e := colsf(line, buf[:0])
+		if e != nil { return 0, h(e) }
+
+		return cols[0], nil
+	}
+}
+
 func IdCols(path string, idnames []string) ([]int, error) {
 	return NamedCols(path, idnames)
+}
+
+func IdColsFunc(idnames []string) func(line []string, buf []int) ([]int, error) {
+	return NamedColsFunc(idnames)
 }
 
 func NewNamedValSet() *NamedValSet {
