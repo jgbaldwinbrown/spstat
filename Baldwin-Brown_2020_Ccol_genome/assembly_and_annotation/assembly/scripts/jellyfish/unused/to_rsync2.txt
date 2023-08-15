@@ -1,3 +1,0 @@
-/home/jbaldwin/new_home/temp/run_jellyfish.sh
-/home/jbaldwin/new_home/temp/get_basic_stats_fq.sh
-/home/jbaldwin/new_home/temp/read_length_mean.py
