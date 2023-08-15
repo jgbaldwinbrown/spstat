@@ -20,7 +20,7 @@ func CombineOne(line []string, cols []int, sep string) (string, error) {
 	return strings.Join(tocombine, sep), nil
 }
 
-func ColCombine(path string, w io.Writer, cols []int, sep string) error {
+func ColCombine(path string, w io.Writer, colsf func([]string, []int) ([]int, error), sep string) error {
 	h := handle("ColCombine: %w")
 
 	cr, gr, fp, e := Open(path)
@@ -32,7 +32,16 @@ func ColCombine(path string, w io.Writer, cols []int, sep string) error {
 	cw.Comma = rune('\t')
 	defer cw.Flush()
 
-	for line, e := cr.Read(); e != io.EOF; line, e = cr.Read() {
+	line, e := cr.Read()
+	if e == io.EOF {
+		return nil
+	}
+	cols, e := colsf(line, []int{})
+	if e != nil {
+		return h(e)
+	}
+
+	for ; e != io.EOF; line, e = cr.Read() {
 		if e != nil { return h(e) }
 
 		combined, e := CombineOne(line, cols, sep)
@@ -48,11 +57,11 @@ func ColCombine(path string, w io.Writer, cols []int, sep string) error {
 func RunColCombine(path string, w io.Writer, colnames []string, sep string) error {
 	h := handle("RunColCombine: %w")
 
-	cols, e := NamedCols(path, colnames)
-	if e != nil { return h(e) }
+	colsf := NamedColsFunc(colnames)
 
-	e = ColCombine(path, w, cols, sep)
-	if e != nil { return h(e) }
+	if e := ColCombine(path, w, colsf, sep); e != nil {
+		return h(e)
+	}
 
 	return nil
 }

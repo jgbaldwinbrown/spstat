@@ -17,7 +17,7 @@ func PosWinOne(line []string, col int, winsize int) (int, error) {
 	return (int(p) / winsize) * winsize, nil
 }
 
-func PosWin(path string, w io.Writer, col int, winsize int) error {
+func PosWin(path string, w io.Writer, colf func([]string, []int) (int, error), winsize int) error {
 	h := handle("PosWin: %w")
 
 	cr, gr, fp, e := Open(path)
@@ -31,6 +31,9 @@ func PosWin(path string, w io.Writer, col int, winsize int) error {
 
 	line, e := cr.Read()
 	if e != nil { return h(e) }
+	col, e := colf(line, []int{})
+	if e != nil { return h(e) }
+
 	line = append(line, "poswin")
 	e = cw.Write(line)
 	if e != nil { return h(e) }
@@ -51,11 +54,11 @@ func PosWin(path string, w io.Writer, col int, winsize int) error {
 func RunPosWin(path string, w io.Writer, colname string, winsize int) error {
 	h := handle("RunColCombine: %w")
 
-	cols, e := NamedCols(path, []string{colname})
-	if e != nil { return h(e) }
+	colf := ValColFunc(colname)
 
-	e = PosWin(path, w, cols[0], winsize)
-	if e != nil { return h(e) }
+	if e := PosWin(path, w, colf, winsize); e != nil {
+		return h(e)
+	}
 
 	return nil
 }

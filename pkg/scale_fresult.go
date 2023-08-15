@@ -302,7 +302,7 @@ func ScaleFTestsPerChrPos(ftests []FTestResult, chrPosToProbeMap map[ChrPos][]st
 func WriteScaled(w io.Writer, scaled []ScaledFTest) error {
 	for _, s := range scaled {
 		_, e := fmt.Fprintf(w, "%v\t%v\t%v\n", s.Name1, s.Name2, s.ScaledSdDiff)
-		if e != nil { return fmt.Errorf("WriteScaled: %w") }
+		if e != nil { return fmt.Errorf("WriteScaled: %w", e) }
 	}
 	return nil
 }
