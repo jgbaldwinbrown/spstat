@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"strconv"
 	"fmt"
 	"io"
@@ -20,10 +21,10 @@ func PosWinOne(line []string, col int, winsize int) (int, error) {
 func PosWin(path string, w io.Writer, colf func([]string, []int) (int, error), winsize int) error {
 	h := handle("PosWin: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

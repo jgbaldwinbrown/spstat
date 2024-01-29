@@ -1,6 +1,8 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
+	"log"
 	"encoding/csv"
 	"fmt"
 	"io"
@@ -17,10 +19,10 @@ func CalcFullColTSummary(path string, cols []int) ([]*TSummary, error) {
 		tsums = append(tsums, tsum)
 	}
 
-	cr, gr, r, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	for line, e := cr.Read(); e != io.EOF; line, e = cr.Read() {
 		if e != nil { return tsums, h(e) }
@@ -67,10 +69,10 @@ func LinearModelCore(path string, valcol, indepcol int, vmean, imean float64) (m
 
 	l := &LinearModeler{XMean: imean, YMean: vmean}
 
-	cr, gr, r, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return 0, 0, h(e) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	for line, e := cr.Read(); e != io.EOF; line, e = cr.Read() {
 		if e != nil { return 0, 0, h(e) }
@@ -87,6 +89,7 @@ func LinearModelCore(path string, valcol, indepcol int, vmean, imean float64) (m
 		l.Add(val, indep)
 	}
 
+	log.Print(l, *l)
 	m_out, b_out := l.MB()
 	return m_out, b_out, nil
 
@@ -113,10 +116,10 @@ func OneLinearModelResidual(y, x, m, b float64) float64 {
 func LinearModelResiduals(path string, w io.Writer, valcol, indepcol int, m, b float64) (err error) {
 	h := handle("LinearModelResiduals: %w")
 
-	cr, gr, r, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

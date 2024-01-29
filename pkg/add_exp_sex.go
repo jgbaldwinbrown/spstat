@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"strings"
 	"encoding/csv"
 	"fmt"
@@ -25,7 +26,7 @@ func GetInfoMap(path string, keycol int) (map[string][]string, error) {
 
 	m := map[string][]string{}
 
-	r, e := os.Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 

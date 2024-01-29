@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"encoding/csv"
 	"regexp"
 	"strconv"
@@ -44,10 +45,10 @@ func NewTSummary() *TSummary {
 func CalcTSummary(path string, valcol int, idcolsnames []string, idcols []int, controlsetidx, testsetidx int) ([]*TSummary, []TTestSet, error) {
 	h := handle("CalcTSummary: %w")
 
-	cr, gr, r, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, nil, h(e) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	return CalcTSummaryFromCsvReader(cr, valcol, idcolsnames, idcols, controlsetidx, testsetidx)
 }
@@ -103,10 +104,10 @@ func CalcTSummaryVsBlood(path string, valcol int, idcolsnames []string, idcols [
 	bloodtsum.Idx = bloodcol
 	bloodre := regexp.MustCompile(`^[Bb]lood$`)
 
-	cr, gr, r, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, nil, h(e) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	for line, e := cr.Read(); e != io.EOF; line, e = cr.Read() {
 		if e != nil { return tsums, nil, h(e) }

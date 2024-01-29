@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"encoding/csv"
+	"github.com/jgbaldwinbrown/csvh"
 )
 
 func AddAfracOne(line []string, hitcol, countcol int) (float64, error) {
@@ -24,10 +25,10 @@ func AddAfracOne(line []string, hitcol, countcol int) (float64, error) {
 func AddAfrac(path string, w io.Writer, hitcol, countcol int) error {
 	h := handle("AddAfrac: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"os"
 	"flag"
 	"strconv"
@@ -24,10 +25,10 @@ func NormVarOne(line []string, valcol int, tsum *TSummary) (float64, error) {
 func NormVar(path string, w io.Writer, valcol int, tsum *TSummary) error {
 	h := handle("Norm: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

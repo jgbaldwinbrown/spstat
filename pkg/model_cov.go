@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"fmt"
 	"io"
 )
@@ -15,10 +16,10 @@ func CalcFullColTSummaryTransform(path string, cols []int, transformFunc func(st
 		tsums = append(tsums, tsum)
 	}
 
-	cr, gr, r, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	for line, e := cr.Read(); e != io.EOF; line, e = cr.Read() {
 		if e != nil { return tsums, h(e) }

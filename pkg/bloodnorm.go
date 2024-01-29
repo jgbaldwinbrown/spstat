@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"fmt"
 	"strconv"
 	"io"
@@ -24,10 +25,10 @@ func SubOne(line []string, valcol, tosubcol int) (float64, error) {
 func ColSub(path string, w io.Writer, valcol, tosubcol int) error {
 	h := handle("RunColSub: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

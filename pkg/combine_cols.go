@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"strings"
 	"fmt"
 	"io"
@@ -23,10 +24,10 @@ func CombineOne(line []string, cols []int, sep string) (string, error) {
 func ColCombine(path string, w io.Writer, colsf func([]string, []int) ([]int, error), sep string) error {
 	h := handle("ColCombine: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

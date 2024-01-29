@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"encoding/csv"
 	"io"
 	"os"
@@ -13,7 +14,7 @@ func ReadIdents(path string) (map[string]string, error) {
 	h := handle("ReadIdents: %w")
 	ids := map[string]string{}
 
-	r, e := os.Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 	cr := OpenCsv(r)

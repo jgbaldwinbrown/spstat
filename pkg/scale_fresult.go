@@ -1,7 +1,7 @@
 package spstat
 
 import (
-	"compress/gzip"
+	"github.com/jgbaldwinbrown/csvh"
 	"os"
 	"flag"
 	"strings"
@@ -58,15 +58,11 @@ func ReadModel(r io.Reader) ([]Model, error) {
 func ReadModelPath(path string) ([]Model, error) {
 	h := handle("ReadModelPath: %w")
 
-	r, e := os.Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 
-	gr, e := gzip.NewReader(r)
-	if e != nil { return nil, h(e) }
-	defer gr.Close()
-
-	return ReadModel(gr)
+	return ReadModel(r)
 }
 
 func MapProbeToCoeffs(models []Model) map[string][]float64 {
@@ -90,9 +86,9 @@ type ProbeChrPos struct {
 func ReadProbeChrPos(path string) ([]ProbeChrPos, error) {
 	h := handle("ReadProbeInfo: %w")
 
-	cr, gr, fp, e := Open(path)
-	defer fp.Close()
-	defer gr.Close()
+	r, e := csvh.OpenMaybeGz(path)
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 	cr.Comma = rune(',')
 	cr.LazyQuotes = false
 

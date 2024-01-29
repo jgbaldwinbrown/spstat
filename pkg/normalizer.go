@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"math"
 	"strconv"
 	"encoding/csv"
@@ -81,10 +82,10 @@ func NamedColsFunc(names []string) func(line []string, outbuf []int) ([]int, err
 func NamedCols(path string, names []string) ([]int, error) {
 	h := handle("NamedCols: %w")
 
-	cr, gr, r, e := Open(path)
-	if e != nil { return nil, h(e) }
+	r, e := csvh.OpenMaybeGz(path)
+	if e != nil { return nil, h(fmt.Errorf("path %v; %w", path, e)) }
 	defer r.Close()
-	defer gr.Close()
+	cr := csvh.CsvIn(r)
 
 	line, e := cr.Read()
 	if e != nil { return nil, h(e) }
@@ -146,10 +147,10 @@ func NewNamedValSet() *NamedValSet {
 func CalcMeans(path string, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
 	h := handle("CalcMeans: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	sets := []*NamedValSet{}
 	for i, name := range idnames {
@@ -193,10 +194,10 @@ func (s *NamedValSet) AddResid(val float64, line []string, means []*NamedValSet,
 func CalcSerialMean(path string, valcol int, means []*NamedValSet, idname string, idcol int) (*NamedValSet, error) {
 	h := handle("CalcSerialMean: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return nil, h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	s := NewNamedValSet()
 	s.ColName = idname
@@ -247,10 +248,10 @@ func NormOne(line []string, valcol int, means []*NamedValSet) (float64, error) {
 func Norm(path string, w io.Writer, valcol int, means []*NamedValSet) error {
 	h := handle("Norm: %w")
 
-	cr, gr, fp, e := Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return h(e) }
-	defer fp.Close()
-	defer gr.Close()
+	defer r.Close()
+	cr := csvh.CsvIn(r)
 
 	cw := csv.NewWriter(w)
 	cw.Comma = rune('\t')

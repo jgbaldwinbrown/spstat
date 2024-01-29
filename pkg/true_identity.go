@@ -1,6 +1,7 @@
 package spstat
 
 import (
+	"github.com/jgbaldwinbrown/csvh"
 	"encoding/csv"
 	"fmt"
 	"flag"
@@ -45,7 +46,7 @@ func GetExperimentSexInfo(path string) (*ExpSexSet, error) {
 
 	s := &ExpSexSet{M: map[ExpSexId]ExpSexEntry{}}
 
-	r, e := os.Open(path)
+	r, e := csvh.OpenMaybeGz(path)
 	if e != nil { return s, h(e) }
 	defer r.Close()
 
