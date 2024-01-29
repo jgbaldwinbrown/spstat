@@ -22,10 +22,10 @@ func SubOne(line []string, valcol, tosubcol int) (float64, error) {
 	return val - tosub, nil
 }
 
-func ColSub(path string, w io.Writer, valcol, tosubcol int) error {
+func ColSub(rcm ReadCloserMaker, w io.Writer, valcol, tosubcol int) error {
 	h := handle("RunColSub: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -53,16 +53,16 @@ func ColSub(path string, w io.Writer, valcol, tosubcol int) error {
 	return nil
 }
 
-func RunColSub(path string, w io.Writer, valcolname, tosubcolname string) error {
+func RunColSub(rcm ReadCloserMaker, w io.Writer, valcolname, tosubcolname string) error {
 	h := handle("RunColSub: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	tosubcol, e := ValCol(path, tosubcolname)
+	tosubcol, e := ValCol(rcm, tosubcolname)
 	if e != nil { return h(e) }
 
-	e = ColSub(path, w, valcol, tosubcol)
+	e = ColSub(rcm, w, valcol, tosubcol)
 	if e != nil { return h(e) }
 
 	return nil

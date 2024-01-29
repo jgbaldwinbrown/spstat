@@ -46,10 +46,10 @@ func Expectation(t bool, sex, experiment, tissue, chrom string) string {
 	return FExpectation(sex, experiment, tissue, chrom)
 }
 
-func LinearModelAppendExpectation(path string, w io.Writer, t bool, sexcol, experimentcol, tissuecol, chromcol int, header bool) (err error) {
+func LinearModelAppendExpectation(rcm ReadCloserMaker, w io.Writer, t bool, sexcol, experimentcol, tissuecol, chromcol int, header bool) (err error) {
 	h := handle("LinearModelAppendExpectations: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	cr := csvh.CsvIn(r)
 
@@ -89,22 +89,22 @@ func LinearModelAppendExpectation(path string, w io.Writer, t bool, sexcol, expe
 	return nil
 }
 
-func FullAppendExpectation(path string, w io.Writer, t bool, sexcolname, experimentcolname, tissuecolname, chromcolname string) error {
+func FullAppendExpectation(rcm ReadCloserMaker, w io.Writer, t bool, sexcolname, experimentcolname, tissuecolname, chromcolname string) error {
 	h := handle("RunLinearModel: %w")
 
-	sexcol, e := ValCol(path, sexcolname)
+	sexcol, e := ValCol(rcm, sexcolname)
 	if e != nil { return h(e) }
 
-	experimentcol, e := ValCol(path, experimentcolname)
+	experimentcol, e := ValCol(rcm, experimentcolname)
 	if e != nil { return h(e) }
 
-	tissuecol, e := ValCol(path, tissuecolname)
+	tissuecol, e := ValCol(rcm, tissuecolname)
 	if e != nil { return h(e) }
 
-	chromcol, e := ValCol(path, chromcolname)
+	chromcol, e := ValCol(rcm, chromcolname)
 	if e != nil { return h(e) }
 
-	e = LinearModelAppendExpectation(path, w, t, sexcol, experimentcol, tissuecol, chromcol, true)
+	e = LinearModelAppendExpectation(rcm, w, t, sexcol, experimentcol, tissuecol, chromcol, true)
 	if e != nil { return h(e) }
 
 	return nil
@@ -136,12 +136,12 @@ func RunAppendExpectation() {
 	}()
 
 	if !f.ResultFile {
-		e := FullAppendExpectation(f.Path, stdout, f.T, "sex", "experiment", "tissue", "chrom")
+		e := FullAppendExpectation(MaybeGzPath(f.Path), stdout, f.T, "sex", "experiment", "tissue", "chrom")
 		if e != nil {
 			log.Fatal(h(e))
 		}
 	} else {
-		e := LinearModelAppendExpectation(f.Path, stdout, f.T, 18, 17, 3, -1, false)
+		e := LinearModelAppendExpectation(MaybeGzPath(f.Path), stdout, f.T, 18, 17, 3, -1, false)
 		if e != nil {
 			log.Fatal(h(e))
 		}

@@ -18,10 +18,10 @@ func PosWinOne(line []string, col int, winsize int) (int, error) {
 	return (int(p) / winsize) * winsize, nil
 }
 
-func PosWin(path string, w io.Writer, colf func([]string, []int) (int, error), winsize int) error {
+func PosWin(rcm ReadCloserMaker, w io.Writer, colf func([]string, []int) (int, error), winsize int) error {
 	h := handle("PosWin: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -52,12 +52,12 @@ func PosWin(path string, w io.Writer, colf func([]string, []int) (int, error), w
 	return nil
 }
 
-func RunPosWin(path string, w io.Writer, colname string, winsize int) error {
+func RunPosWin(rcm ReadCloserMaker, w io.Writer, colname string, winsize int) error {
 	h := handle("RunColCombine: %w")
 
 	colf := ValColFunc(colname)
 
-	if e := PosWin(path, w, colf, winsize); e != nil {
+	if e := PosWin(rcm, w, colf, winsize); e != nil {
 		return h(e)
 	}
 

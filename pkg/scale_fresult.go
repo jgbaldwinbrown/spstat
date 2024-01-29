@@ -55,10 +55,10 @@ func ReadModel(r io.Reader) ([]Model, error) {
 	return models, nil
 }
 
-func ReadModelPath(path string) ([]Model, error) {
+func ReadModelPath(rcm ReadCloserMaker) ([]Model, error) {
 	h := handle("ReadModelPath: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 
@@ -83,10 +83,10 @@ type ProbeChrPos struct {
 	ChrPos
 }
 
-func ReadProbeChrPos(path string) ([]ProbeChrPos, error) {
+func ReadProbeChrPos(rcm ReadCloserMaker) ([]ProbeChrPos, error) {
 	h := handle("ReadProbeInfo: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	defer r.Close()
 	cr := csvh.CsvIn(r)
 	cr.Comma = rune(',')
@@ -416,7 +416,7 @@ func RunScaleFTests() {
 	ftests, e := ReadFTestResults(os.Stdin)
 	if e != nil { panic(e) }
 
-	models, e := ReadModelPath(*modelpp)
+	models, e := ReadModelPath(MaybeGzPath(*modelpp))
 	if e != nil { panic(e) }
 
 	var scaled []ScaledFTest
@@ -428,14 +428,14 @@ func RunScaleFTests() {
 		scaled, e = ScaleTTestsPerChrom(ftests, models[0].Coeffs[1])
 		if e != nil { panic(e) }
 	} else if *winsizep == -1 {
-		probeset, e := ReadProbeChrPos(*probepp)
+		probeset, e := ReadProbeChrPos(MaybeGzPath(*probepp))
 		if e != nil { panic(e) }
 
 		chrtoprobe := MapChrToProbes(probeset)
 		scaled, e = ScaleFTestsPerChrom(ftests, chrtoprobe, MapProbeToCoeffs(models))
 		if e != nil { panic(e) }
 	} else {
-		probeset, e := ReadProbeChrPos(*probepp)
+		probeset, e := ReadProbeChrPos(MaybeGzPath(*probepp))
 		if e != nil { panic(e) }
 
 		chrpostoprobe := MapChrPosWinToProbe(probeset, *winsizep)

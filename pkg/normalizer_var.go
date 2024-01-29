@@ -22,10 +22,10 @@ func NormVarOne(line []string, valcol int, tsum *TSummary) (float64, error) {
 	return resid, nil
 }
 
-func NormVar(path string, w io.Writer, valcol int, tsum *TSummary) error {
+func NormVar(rcm ReadCloserMaker, w io.Writer, valcol int, tsum *TSummary) error {
 	h := handle("Norm: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -53,16 +53,16 @@ func NormVar(path string, w io.Writer, valcol int, tsum *TSummary) error {
 	return nil
 }
 
-func RunNormVar(path string, w io.Writer, valcolname string, idcolname string) error {
+func RunNormVar(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolname string) error {
 	h := handle("RunNormVar: Step: %v; %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h("valcol", e) }
 
-	idcol, e := ValCol(path, idcolname)
+	idcol, e := ValCol(rcm, idcolname)
 	if e != nil { return h("idcol", e) }
 
-	tsums, _, e := CalcTSummary(path, valcol, []string{idcolname}, []int{idcol}, 0, 0)
+	tsums, _, e := CalcTSummary(rcm, valcol, []string{idcolname}, []int{idcol}, 0, 0)
 	if e != nil { return h("tsums", e) }
 	tsum := tsums[0]
 
@@ -71,7 +71,7 @@ func RunNormVar(path string, w io.Writer, valcolname string, idcolname string) e
 	// 	fmt.Printf("name: %v; mean: %v; var: %v; sd: %v\n", name, tsum.Mean(name), tsum.Var(name), tsum.Sd(name))
 	// }
 
-	e = NormVar(path, w, valcol, tsum)
+	e = NormVar(rcm, w, valcol, tsum)
 	if e != nil { return h("normvar", e) }
 
 	return nil
@@ -92,6 +92,6 @@ func RunFullNormVar() {
 		panic(fmt.Errorf("missing -id"))
 	}
 
-	e := RunNormVar(*inpp, os.Stdout, *valcolp, *idcolp)
+	e := RunNormVar(MaybeGzPath(*inpp), os.Stdout, *valcolp, *idcolp)
 	if e != nil { panic(e) }
 }

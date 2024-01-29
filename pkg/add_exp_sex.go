@@ -1,7 +1,6 @@
 package spstat
 
 import (
-	"github.com/jgbaldwinbrown/csvh"
 	"strings"
 	"encoding/csv"
 	"fmt"
@@ -21,12 +20,12 @@ func ParseInfoLine(line []string, keycol int) (key string, err error) {
 	return line[keycol], nil
 }
 
-func GetInfoMap(path string, keycol int) (map[string][]string, error) {
+func GetInfoMap(rcm ReadCloserMaker, keycol int) (map[string][]string, error) {
 	h := handle("GetExperimentSexInfo: %w")
 
 	m := map[string][]string{}
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 
@@ -138,7 +137,7 @@ func RunAddIdCols() {
 		panic(e)
 	}
 
-	infoMap, e := GetInfoMap(*ipathp, *idKeyColp)
+	infoMap, e := GetInfoMap(MaybeGzPath(*ipathp), *idKeyColp)
 	if e != nil {
 		panic(e)
 	}

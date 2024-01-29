@@ -21,10 +21,10 @@ func CombineOne(line []string, cols []int, sep string) (string, error) {
 	return strings.Join(tocombine, sep), nil
 }
 
-func ColCombine(path string, w io.Writer, colsf func([]string, []int) ([]int, error), sep string) error {
+func ColCombine(rcm ReadCloserMaker, w io.Writer, colsf func([]string, []int) ([]int, error), sep string) error {
 	h := handle("ColCombine: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -55,12 +55,12 @@ func ColCombine(path string, w io.Writer, colsf func([]string, []int) ([]int, er
 	return nil
 }
 
-func RunColCombine(path string, w io.Writer, colnames []string, sep string) error {
+func RunColCombine(rcm ReadCloserMaker, w io.Writer, colnames []string, sep string) error {
 	h := handle("RunColCombine: %w")
 
 	colsf := NamedColsFunc(colnames)
 
-	if e := ColCombine(path, w, colsf, sep); e != nil {
+	if e := ColCombine(rcm, w, colsf, sep); e != nil {
 		return h(e)
 	}
 

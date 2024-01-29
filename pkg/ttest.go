@@ -42,10 +42,10 @@ func NewTSummary() *TSummary {
 	return s
 }
 
-func CalcTSummary(path string, valcol int, idcolsnames []string, idcols []int, controlsetidx, testsetidx int) ([]*TSummary, []TTestSet, error) {
+func CalcTSummary(rcm ReadCloserMaker, valcol int, idcolsnames []string, idcols []int, controlsetidx, testsetidx int) ([]*TSummary, []TTestSet, error) {
 	h := handle("CalcTSummary: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, nil, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -88,7 +88,7 @@ func CalcTSummaryFromCsvReader(cr *csv.Reader, valcol int, idcolsnames []string,
 	return tsums, tsets, nil
 }
 
-func CalcTSummaryVsBlood(path string, valcol int, idcolsnames []string, idcols []int, bloodcol int, bloodcolname string) (idtsums []*TSummary, bloodtsum *TSummary, err error) {
+func CalcTSummaryVsBlood(rcm ReadCloserMaker, valcol int, idcolsnames []string, idcols []int, bloodcol int, bloodcolname string) (idtsums []*TSummary, bloodtsum *TSummary, err error) {
 	h := handle("CalcTSummaryVsBlood: %w")
 
 	var tsums []*TSummary
@@ -104,7 +104,7 @@ func CalcTSummaryVsBlood(path string, valcol int, idcolsnames []string, idcols [
 	bloodtsum.Idx = bloodcol
 	bloodre := regexp.MustCompile(`^[Bb]lood$`)
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, nil, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -208,16 +208,16 @@ func TTests(w io.Writer, tsums []*TSummary, testsets []TTestSet) error {
 	return nil
 }
 
-func RunTTest(path string, w io.Writer, valcolname string, idcolsnames []string, controlsetidx, testsetidx int) error {
+func RunTTest(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames []string, controlsetidx, testsetidx int) error {
 	h := handle("Run: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	idcols, e := IdCols(path, idcolsnames)
+	idcols, e := IdCols(rcm, idcolsnames)
 	if e != nil { return h(e) }
 
-	tsummaries, testsets, e := CalcTSummary(path, valcol, idcolsnames, idcols, controlsetidx, testsetidx)
+	tsummaries, testsets, e := CalcTSummary(rcm, valcol, idcolsnames, idcols, controlsetidx, testsetidx)
 	if e != nil { return h(e) }
 
 	e = TTests(w, tsummaries, testsets)
@@ -226,7 +226,7 @@ func RunTTest(path string, w io.Writer, valcolname string, idcolsnames []string,
 	return nil
 }
 
-func RunFullTTest(path string, w io.Writer, valcolname, bloodcolname, testcolname string) error {
+func RunFullTTest(rcm ReadCloserMaker, w io.Writer, valcolname, bloodcolname, testcolname string) error {
 	idcolsnames := []string{bloodcolname, testcolname}
-	return RunTTest(path, w, valcolname, idcolsnames, 0, 1)
+	return RunTTest(rcm, w, valcolname, idcolsnames, 0, 1)
 }

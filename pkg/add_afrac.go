@@ -22,10 +22,10 @@ func AddAfracOne(line []string, hitcol, countcol int) (float64, error) {
 	return hits / count, nil
 }
 
-func AddAfrac(path string, w io.Writer, hitcol, countcol int) error {
+func AddAfrac(rcm ReadCloserMaker, w io.Writer, hitcol, countcol int) error {
 	h := handle("AddAfrac: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -53,16 +53,16 @@ func AddAfrac(path string, w io.Writer, hitcol, countcol int) error {
 	return nil
 }
 
-func RunAddAfrac(path string, w io.Writer, hitcolname, countcolname string) error {
+func RunAddAfrac(rcm ReadCloserMaker, w io.Writer, hitcolname, countcolname string) error {
 	h := handle("RunAddAfrac: %w")
 
-	hitcol, e := ValCol(path, hitcolname)
+	hitcol, e := ValCol(rcm, hitcolname)
 	if e != nil { return h(e) }
 
-	countcol, e := ValCol(path, countcolname)
+	countcol, e := ValCol(rcm, countcolname)
 	if e != nil { return h(e) }
 
-	e = AddAfrac(path, w, hitcol, countcol)
+	e = AddAfrac(rcm, w, hitcol, countcol)
 	if e != nil { return h(e) }
 
 	return nil

@@ -64,16 +64,16 @@ func FTests(w io.Writer, tsums []*TSummary, testsets []TTestSet) error {
 	return nil
 }
 
-func RunFTest(path string, w io.Writer, valcolname string, idcolsnames []string, controlsetidx, testsetidx int) error {
+func RunFTest(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames []string, controlsetidx, testsetidx int) error {
 	h := handle("Run: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	idcols, e := IdCols(path, idcolsnames)
+	idcols, e := IdCols(rcm, idcolsnames)
 	if e != nil { return h(e) }
 
-	tsummaries, testsets, e := CalcTSummary(path, valcol, idcolsnames, idcols, controlsetidx, testsetidx)
+	tsummaries, testsets, e := CalcTSummary(rcm, valcol, idcolsnames, idcols, controlsetidx, testsetidx)
 	if e != nil { return h(e) }
 
 	e = FTests(w, tsummaries, testsets)
@@ -82,7 +82,7 @@ func RunFTest(path string, w io.Writer, valcolname string, idcolsnames []string,
 	return nil
 }
 
-func RunFullFTest(path string, w io.Writer, valcolname, bloodcolname, testcolname string) error {
+func RunFullFTest(rcm ReadCloserMaker, w io.Writer, valcolname, bloodcolname, testcolname string) error {
 	idcolsnames := []string{bloodcolname, testcolname}
-	return RunFTest(path, w, valcolname, idcolsnames, 0, 1)
+	return RunFTest(rcm, w, valcolname, idcolsnames, 0, 1)
 }

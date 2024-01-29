@@ -9,7 +9,7 @@ import (
 	"strconv"
 )
 
-func CalcFullColTSummary(path string, cols []int) ([]*TSummary, error) {
+func CalcFullColTSummary(rcm ReadCloserMaker, cols []int) ([]*TSummary, error) {
 	h := handle("CalcTSummary: %w")
 
 	var tsums []*TSummary
@@ -19,7 +19,7 @@ func CalcFullColTSummary(path string, cols []int) ([]*TSummary, error) {
 		tsums = append(tsums, tsum)
 	}
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -64,12 +64,12 @@ func (l *LinearModeler) MB() (m float64, b float64) {
 	return m, b
 }
 
-func LinearModelCore(path string, valcol, indepcol int, vmean, imean float64) (m, b float64, err error) {
+func LinearModelCore(rcm ReadCloserMaker, valcol, indepcol int, vmean, imean float64) (m, b float64, err error) {
 	h := handle("LinearModelCore: %w")
 
 	l := &LinearModeler{XMean: imean, YMean: vmean}
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return 0, 0, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -95,15 +95,15 @@ func LinearModelCore(path string, valcol, indepcol int, vmean, imean float64) (m
 
 }
 
-func LinearModel(path string, valcol, indepcol int) (m, b float64, err error) {
+func LinearModel(rcm ReadCloserMaker, valcol, indepcol int) (m, b float64, err error) {
 	h := handle("LinearModel: %w")
 
-	tsums, e := CalcFullColTSummary(path, []int{valcol, indepcol})
+	tsums, e := CalcFullColTSummary(rcm, []int{valcol, indepcol})
 	if e != nil { return 0, 0, h(e) }
 	vmean := tsums[0].Mean("")
 	imean := tsums[1].Mean("")
 
-	m, b, e = LinearModelCore(path, valcol, indepcol, vmean, imean)
+	m, b, e = LinearModelCore(rcm, valcol, indepcol, vmean, imean)
 	if e != nil { return 0, 0, h(e) }
 	return m, b, nil
 }
@@ -113,10 +113,10 @@ func OneLinearModelResidual(y, x, m, b float64) float64 {
 	return y - predict
 }
 
-func LinearModelResiduals(path string, w io.Writer, valcol, indepcol int, m, b float64) (err error) {
+func LinearModelResiduals(rcm ReadCloserMaker, w io.Writer, valcol, indepcol int, m, b float64) (err error) {
 	h := handle("LinearModelResiduals: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -152,19 +152,19 @@ func LinearModelResiduals(path string, w io.Writer, valcol, indepcol int, m, b f
 	return nil
 }
 
-func RunLinearModel(path string, w io.Writer, valcolname, indepcolname string) error {
+func RunLinearModel(rcm ReadCloserMaker, w io.Writer, valcolname, indepcolname string) error {
 	h := handle("RunLinearModel: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	indepcol, e := ValCol(path, indepcolname)
+	indepcol, e := ValCol(rcm, indepcolname)
 	if e != nil { return h(e) }
 
-	m, b, e := LinearModel(path, valcol, indepcol)
+	m, b, e := LinearModel(rcm, valcol, indepcol)
 	if e != nil { return h(e) }
 
-	e = LinearModelResiduals(path, w, valcol, indepcol, m, b)
+	e = LinearModelResiduals(rcm, w, valcol, indepcol, m, b)
 	if e != nil { return h(e) }
 
 	return nil

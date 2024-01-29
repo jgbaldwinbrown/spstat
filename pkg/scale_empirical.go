@@ -15,10 +15,10 @@ func Predict(x, m, b float64) float64 {
 	return (x * m) + b
 }
 
-func LinearModelPredict(path string, w io.Writer, indepcol int, m, b float64) (err error) {
+func LinearModelPredict(rcm ReadCloserMaker, w io.Writer, indepcol int, m, b float64) (err error) {
 	h := handle("LinearModelResiduals: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -71,19 +71,19 @@ func WriteModelPath(path string, m, b float64) (err error) {
 	return e
 }
 
-func RescaleData(path string, w io.Writer, modelOutPath string, valcolname, indepcolname string) error {
+func RescaleData(rcm ReadCloserMaker, w io.Writer, modelOutPath string, valcolname, indepcolname string) error {
 	h := handle("RescaleData: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	indepcol, e := ValCol(path, indepcolname)
+	indepcol, e := ValCol(rcm, indepcolname)
 	if e != nil { return h(e) }
 
-	m, b, e := LinearModel(path, valcol, indepcol)
+	m, b, e := LinearModel(rcm, valcol, indepcol)
 	if e != nil { return h(e) }
 
-	e = LinearModelPredict(path, w, indepcol, m, b)
+	e = LinearModelPredict(rcm, w, indepcol, m, b)
 	if e != nil { return h(e) }
 
 	if modelOutPath != "" {
@@ -94,13 +94,13 @@ func RescaleData(path string, w io.Writer, modelOutPath string, valcolname, inde
 	return nil
 }
 
-func RescaleDataResultFile(path string, w io.Writer, modelOutPath string, valcol, indepcol int) error {
+func RescaleDataResultFile(rcm ReadCloserMaker, w io.Writer, modelOutPath string, valcol, indepcol int) error {
 	h := handle("RescaleDataResultFile: %w")
 
-	m, b, e := LinearModel(path, valcol, indepcol)
+	m, b, e := LinearModel(rcm, valcol, indepcol)
 	if e != nil { return h(e) }
 
-	e = LinearModelPredict(path, w, indepcol, m, b)
+	e = LinearModelPredict(rcm, w, indepcol, m, b)
 	if e != nil { return h(e) }
 
 	if modelOutPath != "" {
@@ -138,12 +138,12 @@ func RunScaleEmpirical() {
 	}()
 
 	if !f.ResultFile {
-		e := RescaleData(f.Path, stdout, f.ModelOutPath, f.Valcolname, f.Indepcolname)
+		e := RescaleData(MaybeGzPath(f.Path), stdout, f.ModelOutPath, f.Valcolname, f.Indepcolname)
 		if e != nil {
 			panic(h(e))
 		}
 	} else {
-		e := RescaleDataResultFile(f.Path, stdout, f.ModelOutPath, 19, 12)
+		e := RescaleDataResultFile(MaybeGzPath(f.Path), stdout, f.ModelOutPath, 19, 12)
 		if e != nil {
 			panic(h(e))
 		}

@@ -6,7 +6,7 @@ import (
 	"io"
 )
 
-func CalcFullColTSummaryTransform(path string, cols []int, transformFunc func(string) float64) ([]*TSummary, error) {
+func CalcFullColTSummaryTransform(rcm ReadCloserMaker, cols []int, transformFunc func(string) float64) ([]*TSummary, error) {
 	h := handle("CalcTSummaryTransform: %w")
 
 	var tsums []*TSummary
@@ -16,7 +16,7 @@ func CalcFullColTSummaryTransform(path string, cols []int, transformFunc func(st
 		tsums = append(tsums, tsum)
 	}
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -38,16 +38,16 @@ func CalcFullColTSummaryTransform(path string, cols []int, transformFunc func(st
 	return tsums, nil
 }
 
-func LinearModelTransform(path string, valcol, indepcol int, transformFunc(func(string)float64)) (m, b float64, err error) {
+func LinearModelTransform(rcm ReadCloserMaker, valcol, indepcol int, transformFunc(func(string)float64)) (m, b float64, err error) {
 	h := handle("LinearModel: %w")
 
-	valtsums, e := CalcFullColTSummaryTransform(path, []int{valcol}, transformFunc)
-	indeptsums, e := CalcFullColTSummary(path, []int{indepcol})
+	valtsums, e := CalcFullColTSummaryTransform(rcm, []int{valcol}, transformFunc)
+	indeptsums, e := CalcFullColTSummary(rcm, []int{indepcol})
 	if e != nil { return 0, 0, h(e) }
 	vmean := valtsums[0].Mean("")
 	imean := indeptsums[0].Mean("")
 
-	m, b, e = LinearModelCore(path, valcol, indepcol, vmean, imean)
+	m, b, e = LinearModelCore(rcm, valcol, indepcol, vmean, imean)
 	if e != nil { return 0, 0, h(e) }
 	return m, b, nil
 }
@@ -60,16 +60,16 @@ func ChrToExpectation(chr string) float64 {
 	return chrcov
 }
 
-func RunLinearModelCoverage(path string, w io.Writer, valcolname, indepcolname string) error {
+func RunLinearModelCoverage(rcm ReadCloserMaker, w io.Writer, valcolname, indepcolname string) error {
 	h := handle("RunLinearModel: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	indepcol, e := ValCol(path, indepcolname)
+	indepcol, e := ValCol(rcm, indepcolname)
 	if e != nil { return h(e) }
 
-	m, b, e := LinearModelTransform(path, valcol, indepcol, ChrToExpectation)
+	m, b, e := LinearModelTransform(rcm, valcol, indepcol, ChrToExpectation)
 	if e != nil { return h(e) }
 
 	fmt.Fprintf(w, "allchromtotals\t%v\t%v\n", b, m)

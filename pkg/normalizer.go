@@ -5,9 +5,7 @@ import (
 	"math"
 	"strconv"
 	"encoding/csv"
-	"compress/gzip"
 	"io"
-	"os"
 	"fmt"
 )
 
@@ -39,22 +37,22 @@ func OpenCsv(r io.Reader) (*csv.Reader) {
 }
 
 
-func Open(path string) (*csv.Reader, *gzip.Reader, *os.File, error) {
-	h := handle("Open: %w")
-
-	f, e := os.Open(path)
-	if e != nil { return nil, nil, nil, h(e) }
-
-	gr, e := gzip.NewReader(f)
-	if e != nil {
-		f.Close()
-		return nil, nil, nil, h(e)
-	}
-
-	cr := OpenCsv(gr)
-
-	return cr, gr, f, nil
-}
+// func Open(rcm ReadCloserMaker) (*csv.Reader, *gzip.Reader, *os.File, error) {
+// 	h := handle("Open: %w")
+// 
+// 	f, e := os.Open(rcm)
+// 	if e != nil { return nil, nil, nil, h(e) }
+// 
+// 	gr, e := gzip.NewReader(f)
+// 	if e != nil {
+// 		f.Close()
+// 		return nil, nil, nil, h(e)
+// 	}
+// 
+// 	cr := OpenCsv(gr)
+// 
+// 	return cr, gr, f, nil
+// }
 
 func NamedColsFunc(names []string) func(line []string, outbuf []int) ([]int, error) {
 	h := handle("NamedColsFunc: %w")
@@ -79,11 +77,11 @@ func NamedColsFunc(names []string) func(line []string, outbuf []int) ([]int, err
 	}
 }
 
-func NamedCols(path string, names []string) ([]int, error) {
+func NamedCols(rcm ReadCloserMaker, names []string) ([]int, error) {
 	h := handle("NamedCols: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
-	if e != nil { return nil, h(fmt.Errorf("path %v; %w", path, e)) }
+	r, e := rcm.NewReadCloser()
+	if e != nil { return nil, h(fmt.Errorf("path %v; %w", rcm, e)) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
 
@@ -108,10 +106,10 @@ func NamedCols(path string, names []string) ([]int, error) {
 	return idxs, nil
 }
 
-func ValCol(path, valname string) (int, error) {
+func ValCol(rcm ReadCloserMaker, valname string) (int, error) {
 	h := handle("ValCol: %w")
 
-	cols, e := NamedCols(path, []string{valname})
+	cols, e := NamedCols(rcm, []string{valname})
 	if e != nil { return 0, h(e) }
 
 	return cols[0], nil
@@ -129,8 +127,8 @@ func ValColFunc(valname string) func(line []string, buf []int) (int, error) {
 	}
 }
 
-func IdCols(path string, idnames []string) ([]int, error) {
-	return NamedCols(path, idnames)
+func IdCols(rcm ReadCloserMaker, idnames []string) ([]int, error) {
+	return NamedCols(rcm, idnames)
 }
 
 func IdColsFunc(idnames []string) func(line []string, buf []int) ([]int, error) {
@@ -144,10 +142,10 @@ func NewNamedValSet() *NamedValSet {
 	return s
 }
 
-func CalcMeans(path string, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
+func CalcMeans(rcm ReadCloserMaker, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
 	h := handle("CalcMeans: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -191,10 +189,10 @@ func (s *NamedValSet) AddResid(val float64, line []string, means []*NamedValSet,
 	s.Add(resid, id)
 }
 
-func CalcSerialMean(path string, valcol int, means []*NamedValSet, idname string, idcol int) (*NamedValSet, error) {
+func CalcSerialMean(rcm ReadCloserMaker, valcol int, means []*NamedValSet, idname string, idcol int) (*NamedValSet, error) {
 	h := handle("CalcSerialMean: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -217,12 +215,12 @@ func CalcSerialMean(path string, valcol int, means []*NamedValSet, idname string
 	return s, nil
 }
 
-func CalcSerialMeans(path string, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
+func CalcSerialMeans(rcm ReadCloserMaker, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
 	h := handle("CalcSerialMeans: %w")
 
 	var means []*NamedValSet
 	for i, name := range idnames {
-		mean, e := CalcSerialMean(path, valcol, means, name, idcols[i])
+		mean, e := CalcSerialMean(rcm, valcol, means, name, idcols[i])
 		if e != nil { return nil, h(e) }
 		means = append(means, mean)
 	}
@@ -245,10 +243,10 @@ func NormOne(line []string, valcol int, means []*NamedValSet) (float64, error) {
 	return resid, nil
 }
 
-func Norm(path string, w io.Writer, valcol int, means []*NamedValSet) error {
+func Norm(rcm ReadCloserMaker, w io.Writer, valcol int, means []*NamedValSet) error {
 	h := handle("Norm: %w")
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return h(e) }
 	defer r.Close()
 	cr := csvh.CsvIn(r)
@@ -276,19 +274,19 @@ func Norm(path string, w io.Writer, valcol int, means []*NamedValSet) error {
 	return nil
 }
 
-func Run(path string, w io.Writer, valcolname string, idcolsnames []string) error {
+func Run(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames []string) error {
 	h := handle("Run: %w")
 
-	valcol, e := ValCol(path, valcolname)
+	valcol, e := ValCol(rcm, valcolname)
 	if e != nil { return h(e) }
 
-	idcols, e := IdCols(path, idcolsnames)
+	idcols, e := IdCols(rcm, idcolsnames)
 	if e != nil { return h(e) }
 
-	means, e := CalcSerialMeans(path, valcol, idcolsnames, idcols)
+	means, e := CalcSerialMeans(rcm, valcol, idcolsnames, idcols)
 	if e != nil { return h(e) }
 
-	e = Norm(path, w, valcol, means)
+	e = Norm(rcm, w, valcol, means)
 	if e != nil { return h(e) }
 
 	return nil

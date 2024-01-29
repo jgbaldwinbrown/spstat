@@ -1,7 +1,6 @@
 package spstat
 
 import (
-	"github.com/jgbaldwinbrown/csvh"
 	"encoding/csv"
 	"io"
 	"os"
@@ -10,11 +9,11 @@ import (
 	"fmt"
 )
 
-func ReadIdents(path string) (map[string]string, error) {
+func ReadIdents(rcm ReadCloserMaker) (map[string]string, error) {
 	h := handle("ReadIdents: %w")
 	ids := map[string]string{}
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return nil, h(e) }
 	defer r.Close()
 	cr := OpenCsv(r)
@@ -56,10 +55,10 @@ func AssignIdents(r io.Reader, w io.Writer, idents map[string]string, col int, h
 	return nil
 }
 
-func AssignPlate(r io.Reader, w io.Writer, identpath string, col int, header bool) error {
+func AssignPlate(r io.Reader, w io.Writer, identrcm ReadCloserMaker, col int, header bool) error {
 	h := handle("Assign Plate: %w")
 
-	idents, e := ReadIdents(identpath)
+	idents, e := ReadIdents(identrcm)
 	if e != nil { return h(e) }
 
 	e = AssignIdents(r, w, idents, col, header)
@@ -81,7 +80,7 @@ func RunAddPlate() {
 		panic(errors.New("missing -i"))
 	}
 
-	e := AssignPlate(os.Stdin, os.Stdout, *identp, *colp, *headerp)
+	e := AssignPlate(os.Stdin, os.Stdout, MaybeGzPath(*identp), *colp, *headerp)
 	if e != nil {
 		panic(e)
 	}

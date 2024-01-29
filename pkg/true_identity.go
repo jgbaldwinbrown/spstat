@@ -1,7 +1,6 @@
 package spstat
 
 import (
-	"github.com/jgbaldwinbrown/csvh"
 	"encoding/csv"
 	"fmt"
 	"flag"
@@ -41,12 +40,12 @@ func ParseExpSexLine(line []string) (ExpSexId, ExpSexEntry, error) {
 	return ExpSexId{line[0], line[1], num}, ExpSexEntry{line[3], line[4], line[5]}, nil
 }
 
-func GetExperimentSexInfo(path string) (*ExpSexSet, error) {
+func GetExperimentSexInfo(rcm ReadCloserMaker) (*ExpSexSet, error) {
 	h := handle("GetExperimentSexInfo: %w")
 
 	s := &ExpSexSet{M: map[ExpSexId]ExpSexEntry{}}
 
-	r, e := csvh.OpenMaybeGz(path)
+	r, e := rcm.NewReadCloser()
 	if e != nil { return s, h(e) }
 	defer r.Close()
 
