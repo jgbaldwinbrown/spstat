@@ -11,11 +11,14 @@ import (
 	"gonum.org/v1/gonum/stat/distuv"
 )
 
+// Collection of sums of squares for each of the named categories, plus sums
+// and counts, allowing for t tests, means, variances, and standard deviations
 type TSummary struct {
 	NamedValSet
 	SumSqs map[string]float64
 }
 
+// Add a value to the TSummary
 func (s *TSummary) Add(val float64, id string) {
 	if !math.IsNaN(val) {
 		s.NamedValSet.Add(val, id)
@@ -23,12 +26,14 @@ func (s *TSummary) Add(val float64, id string) {
 	}
 }
 
+// Get variance
 func (s *TSummary) Var(id string) float64 {
 	mean := s.Mean(id)
 	vari := (s.SumSqs[id] / s.Counts[id]) - (mean * mean)
 	return vari
 }
 
+// Get standard deviation
 func (s *TSummary) Sd(id string) float64 {
 	vari := s.Var(id)
 	return math.Sqrt(vari)
@@ -142,6 +147,7 @@ type TTestSet struct {
 	Exp TTestItem
 }
 
+// Calculate the T value based on the means, SDs, and counts
 func TTestCore(mean1, mean2, sd1, sd2, count1, count2 float64) float64 {
 	num := mean1 - mean2
 	rt := ((sd1 * sd1) / count1) * ((sd2 * sd2) / count2)
@@ -149,6 +155,7 @@ func TTestCore(mean1, mean2, sd1, sd2, count1, count2 float64) float64 {
 	return num / den
 }
 
+// The P value associated with the t and df
 func TTestP(t float64, df float64) float64 {
 	if BadDF(df) {
 		return math.NaN()
@@ -161,6 +168,7 @@ func TTestP(t float64, df float64) float64 {
 	return 2 * cdf
 }
 
+// The summary associated with the T Test item specified here
 func TsumsSet(tsums []*TSummary, item TTestItem) (int, string) {
 	for i, tsum := range tsums {
 		if tsum.ColName == item.ColName {
@@ -171,10 +179,12 @@ func TsumsSet(tsums []*TSummary, item TTestItem) (int, string) {
 	return 0, ""
 }
 
+// The degrees of fredom for a T test between these summaries
 func TTestDf(ts1 *TSummary, id1 string, ts2 *TSummary, id2 string) float64 {
 	return ts1.Counts[id1] + ts2.Counts[id2] - 2
 }
 
+// Perform a T test contrasting the control and experimental sets
 func TTest(w io.Writer, tsums []*TSummary, testset TTestSet) error {
 	i1, name1 := TsumsSet(tsums, testset.Control)
 	i2, name2 := TsumsSet(tsums, testset.Exp)
@@ -226,6 +236,9 @@ func RunTTest(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames [
 	return nil
 }
 
+// Run a T test on all values. Bloodcolname is the name of the column that
+// differentiates control ("blood") samples from experimental samples.
+// Testcolname is the column that differentiates the chromosome or region of interest from all other (control) regions.
 func RunFullTTest(rcm ReadCloserMaker, w io.Writer, valcolname, bloodcolname, testcolname string) error {
 	idcolsnames := []string{bloodcolname, testcolname}
 	return RunTTest(rcm, w, valcolname, idcolsnames, 0, 1)

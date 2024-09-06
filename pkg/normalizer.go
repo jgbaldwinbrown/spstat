@@ -15,6 +15,7 @@ func handle(form string) func(...any) error {
 	}
 }
 
+// Collection of sums and counts needed for calculating mean of each named category in a particular column
 type NamedValSet struct {
 	ColName string
 	Idx int
@@ -54,6 +55,8 @@ func OpenCsv(r io.Reader) (*csv.Reader) {
 // 	return cr, gr, f, nil
 // }
 
+// Take a set of column names that you want to identify by
+// number and give a function that provides those indices for a table with column names specified by "line"
 func NamedColsFunc(names []string) func(line []string, outbuf []int) ([]int, error) {
 	h := handle("NamedColsFunc: %w")
 
@@ -77,6 +80,7 @@ func NamedColsFunc(names []string) func(line []string, outbuf []int) ([]int, err
 	}
 }
 
+// Peek in rcm and report the column numbers associated with "names"
 func NamedCols(rcm ReadCloserMaker, names []string) ([]int, error) {
 	h := handle("NamedCols: %w")
 
@@ -106,6 +110,7 @@ func NamedCols(rcm ReadCloserMaker, names []string) ([]int, error) {
 	return idxs, nil
 }
 
+// Peek in rcm and identify the column associated with "valname"
 func ValCol(rcm ReadCloserMaker, valname string) (int, error) {
 	h := handle("ValCol: %w")
 
@@ -115,6 +120,7 @@ func ValCol(rcm ReadCloserMaker, valname string) (int, error) {
 	return cols[0], nil
 }
 
+// Generate a function to identify the index of "valname" from the list of column names "line".
 func ValColFunc(valname string) func(line []string, buf []int) (int, error) {
 	colsf := NamedColsFunc([]string{valname})
 	h := handle("ValColFunc: %w")
@@ -127,10 +133,12 @@ func ValColFunc(valname string) func(line []string, buf []int) (int, error) {
 	}
 }
 
+// Peek in rcm and identify all column indices associated with idnames.
 func IdCols(rcm ReadCloserMaker, idnames []string) ([]int, error) {
 	return NamedCols(rcm, idnames)
 }
 
+// Generate a function to identify the indices of "idnames" from the list of column names "line".
 func IdColsFunc(idnames []string) func(line []string, buf []int) ([]int, error) {
 	return NamedColsFunc(idnames)
 }
@@ -142,6 +150,7 @@ func NewNamedValSet() *NamedValSet {
 	return s
 }
 
+// Calculate means for the values in column "valcol", separately for each column and name specified by idcols and idnames.
 func CalcMeans(rcm ReadCloserMaker, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
 	h := handle("CalcMeans: %w")
 
@@ -174,6 +183,7 @@ func CalcMeans(rcm ReadCloserMaker, valcol int, idnames []string, idcols []int) 
 	return sets, nil
 }
 
+// Add a value to the associated ID
 func (s *NamedValSet) Add(val float64, id string) {
 	if !math.IsNaN(val) {
 		s.Sums[id] += val
@@ -181,6 +191,7 @@ func (s *NamedValSet) Add(val float64, id string) {
 	}
 }
 
+// Assuming means have been calculated for each of the named val sets in means, calculate the residual of val after subtracting all of those means, then add that to s.
 func (s *NamedValSet) AddResid(val float64, line []string, means []*NamedValSet, id string) {
 	resid := val
 	for _, mean := range means {
@@ -189,6 +200,7 @@ func (s *NamedValSet) AddResid(val float64, line []string, means []*NamedValSet,
 	s.Add(resid, id)
 }
 
+// Open up rcm, and for each value in valcol, add the residual after subtracting all means in "means" to the new NamedValSet
 func CalcSerialMean(rcm ReadCloserMaker, valcol int, means []*NamedValSet, idname string, idcol int) (*NamedValSet, error) {
 	h := handle("CalcSerialMean: %w")
 
@@ -215,6 +227,7 @@ func CalcSerialMean(rcm ReadCloserMaker, valcol int, means []*NamedValSet, idnam
 	return s, nil
 }
 
+// Do CalcSerialMean, but for each id set
 func CalcSerialMeans(rcm ReadCloserMaker, valcol int, idnames []string, idcols []int) ([]*NamedValSet, error) {
 	h := handle("CalcSerialMeans: %w")
 
@@ -227,6 +240,7 @@ func CalcSerialMeans(rcm ReadCloserMaker, valcol int, idnames []string, idcols [
 	return means, nil
 }
 
+// Normalize (for each mean, subtract mean) for just one value in valcol
 func NormOne(line []string, valcol int, means []*NamedValSet) (float64, error) {
 	h := handle("NormOne: %w")
 
@@ -243,6 +257,7 @@ func NormOne(line []string, valcol int, means []*NamedValSet) (float64, error) {
 	return resid, nil
 }
 
+// Do mean residual normalization for a whole file
 func Norm(rcm ReadCloserMaker, w io.Writer, valcol int, means []*NamedValSet) error {
 	h := handle("Norm: %w")
 
@@ -274,6 +289,7 @@ func Norm(rcm ReadCloserMaker, w io.Writer, valcol int, means []*NamedValSet) er
 	return nil
 }
 
+// Given a value column and a set of id columns to normalize by, go through the table and do residual normalization for all IDs.
 func Run(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames []string) error {
 	h := handle("Run: %w")
 
