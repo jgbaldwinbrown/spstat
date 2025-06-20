@@ -6,6 +6,8 @@ import (
 	"io"
 )
 
+// Generate a TSummary for each specified column, with transformFunc used to
+// convert the strings in the column into expectations.
 func CalcFullColTSummaryTransform(rcm ReadCloserMaker, cols []int, transformFunc func(string) float64) ([]*TSummary, error) {
 	h := handle("CalcTSummaryTransform: %w")
 
@@ -38,6 +40,7 @@ func CalcFullColTSummaryTransform(rcm ReadCloserMaker, cols []int, transformFunc
 	return tsums, nil
 }
 
+// Calculate a linear model fitting valcol ~ indepcol, and using transformFunc on valcol
 func LinearModelTransform(rcm ReadCloserMaker, valcol, indepcol int, transformFunc(func(string)float64)) (m, b float64, err error) {
 	h := handle("LinearModel: %w")
 
@@ -52,6 +55,7 @@ func LinearModelTransform(rcm ReadCloserMaker, valcol, indepcol int, transformFu
 	return m, b, nil
 }
 
+// Presume expected chromosome coverage of 1.0, unless chr is a sex chromosome matching [XxYy]
 func ChrToExpectation(chr string) float64 {
 	chrcov := 1.0
 	if chr == "X" || chr == "Y" || chr == "x" || chr == "y" {
@@ -60,6 +64,7 @@ func ChrToExpectation(chr string) float64 {
 	return chrcov
 }
 
+// Run the whole linear model coverage pipeline
 func RunLinearModelCoverage(rcm ReadCloserMaker, w io.Writer, valcolname, indepcolname string) error {
 	h := handle("RunLinearModel: %w")
 

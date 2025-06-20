@@ -8,6 +8,8 @@ import (
 	"github.com/jgbaldwinbrown/csvh"
 )
 
+// Given a set of strings representing columns in one row, calculate hits and
+// counts from the hit column and count column, then return hits / counts
 func AddAfracOne(line []string, hitcol, countcol int) (float64, error) {
 	h := handle("CombineOne: %w")
 
@@ -22,6 +24,9 @@ func AddAfracOne(line []string, hitcol, countcol int) (float64, error) {
 	return hits / count, nil
 }
 
+// Take a ReadCloserMaker and a hit column and a count column. For each line in
+// the input stream, get hit and count from the hitcol and countcol, then
+// append hit/count to the row, forming a new column
 func AddAfrac(rcm ReadCloserMaker, w io.Writer, hitcol, countcol int) error {
 	h := handle("AddAfrac: %w")
 
@@ -53,6 +58,9 @@ func AddAfrac(rcm ReadCloserMaker, w io.Writer, hitcol, countcol int) error {
 	return nil
 }
 
+// Given an input ReadCloserMaker that can be run multiple times, and provides
+// a tab-separated table with a header line, identify the hit column and count
+// column, then run AddAfrac on it and write the output to 'w'
 func RunAddAfrac(rcm ReadCloserMaker, w io.Writer, hitcolname, countcolname string) error {
 	h := handle("RunAddAfrac: %w")
 

@@ -8,6 +8,8 @@ import (
 	"encoding/csv"
 )
 
+// Extract the specified columns from line, then join them using sep. If the
+// column entry contains sep, replace all instances of sep with '.'.
 func CombineOne(line []string, cols []int, sep string) (string, error) {
 	h := handle("CombineOne: %w")
 
@@ -21,6 +23,8 @@ func CombineOne(line []string, cols []int, sep string) (string, error) {
 	return strings.Join(tocombine, sep), nil
 }
 
+// Take a tab-separated table and a function that reads the header and finds
+// the correct columns to combine. Combine those columns with sep, then append to the existing line.
 func ColCombine(rcm ReadCloserMaker, w io.Writer, colsf func([]string, []int) ([]int, error), sep string) error {
 	h := handle("ColCombine: %w")
 
@@ -55,6 +59,7 @@ func ColCombine(rcm ReadCloserMaker, w io.Writer, colsf func([]string, []int) ([
 	return nil
 }
 
+// Run ColCombine on the named columns
 func RunColCombine(rcm ReadCloserMaker, w io.Writer, colnames []string, sep string) error {
 	h := handle("RunColCombine: %w")
 

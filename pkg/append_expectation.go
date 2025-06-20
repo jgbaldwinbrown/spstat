@@ -11,6 +11,7 @@ import (
 	"github.com/jgbaldwinbrown/csvh"
 )
 
+// Append the expectation of allele frequency for the autosomal f-test controlled experiment
 func FExpectation(sex, experiment, tissue, chrom string) string {
 	// if sex == "female" {
 	// 	return "1.0"
@@ -29,6 +30,7 @@ func FExpectation(sex, experiment, tissue, chrom string) string {
 	return ""
 }
 
+// Append the expectation of X chromosome representation for the sex chromosome t-test controlled experiment
 func TExpectation(sex, experiment, tissue, chrom string) string {
 	if sex == "female" && chrom == "X" {
 		return "1.0"
@@ -39,6 +41,7 @@ func TExpectation(sex, experiment, tissue, chrom string) string {
 	return ""
 }
 
+// // Append the appropriate expectation for the controlled experiment
 func Expectation(t bool, sex, experiment, tissue, chrom string) string {
 	if t {
 		return TExpectation(sex, experiment, tissue, chrom)
@@ -89,6 +92,7 @@ func LinearModelAppendExpectation(rcm ReadCloserMaker, w io.Writer, t bool, sexc
 	return nil
 }
 
+// Wrapper that does the entire linear model expectation appending pipeline.
 func FullAppendExpectation(rcm ReadCloserMaker, w io.Writer, t bool, sexcolname, experimentcolname, tissuecolname, chromcolname string) error {
 	h := handle("RunLinearModel: %w")
 
@@ -110,16 +114,17 @@ func FullAppendExpectation(rcm ReadCloserMaker, w io.Writer, t bool, sexcolname,
 	return nil
 }
 
-type AppendExpectationFlags struct {
+type appendExpectationFlags struct {
 	Path string
 	ResultFile bool
 	T bool
 }
 
+// Wrapper that runs FullAppendExpectation or LinearModelExpectation on the command line
 func RunAppendExpectation() {
 	h := handle("RunAppendExpectation: %w")
 
-	var f AppendExpectationFlags
+	var f appendExpectationFlags
 	flag.StringVar(&f.Path, "i", "", "inpath")
 	flag.BoolVar(&f.ResultFile, "r", false, "interpret input file as a results file, not a data file")
 	flag.BoolVar(&f.T, "t", false, "Append t test expectations")

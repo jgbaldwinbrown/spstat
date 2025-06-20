@@ -8,6 +8,7 @@ import (
 	"encoding/csv"
 )
 
+// Return line[valcol] - line[tosubcol].
 func SubOne(line []string, valcol, tosubcol int) (float64, error) {
 	h := handle("SubOne: %w")
 
@@ -22,6 +23,7 @@ func SubOne(line []string, valcol, tosubcol int) (float64, error) {
 	return val - tosub, nil
 }
 
+// For a tab separated table, append a new column containing line[valcol] - line[tosubcol].
 func ColSub(rcm ReadCloserMaker, w io.Writer, valcol, tosubcol int) error {
 	h := handle("RunColSub: %w")
 
@@ -53,6 +55,7 @@ func ColSub(rcm ReadCloserMaker, w io.Writer, valcol, tosubcol int) error {
 	return nil
 }
 
+// Run the whole column subtraction pipeline.
 func RunColSub(rcm ReadCloserMaker, w io.Writer, valcolname, tosubcolname string) error {
 	h := handle("RunColSub: %w")
 

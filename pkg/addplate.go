@@ -9,6 +9,9 @@ import (
 	"fmt"
 )
 
+// Read a tab-separated table from rcm, then associate columns 5 and 7 such
+// that ids[l[5]] = l[7]. This finds the plate identity (l[7]) associated with
+// each individual identity (l[5]).
 func ReadIdents(rcm ReadCloserMaker) (map[string]string, error) {
 	h := handle("ReadIdents: %w")
 	ids := map[string]string{}
@@ -28,6 +31,7 @@ func ReadIdents(rcm ReadCloserMaker) (map[string]string, error) {
 	return ids, nil
 }
 
+// Assign plate identities to a data table, assuming col contains the individual identities.
 func AssignIdents(r io.Reader, w io.Writer, idents map[string]string, col int, header bool) error {
 	h := handle("AssignIdents: %w")
 	cr := OpenCsv(r)
@@ -55,6 +59,7 @@ func AssignIdents(r io.Reader, w io.Writer, idents map[string]string, col int, h
 	return nil
 }
 
+// Wrapper around ReadIdents and AssignIdents
 func AssignPlate(r io.Reader, w io.Writer, identrcm ReadCloserMaker, col int, header bool) error {
 	h := handle("Assign Plate: %w")
 
@@ -67,6 +72,7 @@ func AssignPlate(r io.Reader, w io.Writer, identrcm ReadCloserMaker, col int, he
 	return nil
 }
 
+// Run AssignPlate on the command line
 func RunAddPlate() {
 	headerp := flag.Bool("h", false, "Table contains a header")
 	colp := flag.Int("c", -1, "column to use as indiv identities")

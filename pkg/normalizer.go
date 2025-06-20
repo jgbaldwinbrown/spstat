@@ -24,10 +24,12 @@ type NamedValSet struct {
 	Counts map[string]float64
 }
 
+// Get the mean from a NamedValSet for all values matching id
 func (s *NamedValSet) Mean(id string) float64 {
 	return s.Sums[id] / s.Counts[id]
 }
 
+// Open a CSV with default settings (comma = '\t')
 func OpenCsv(r io.Reader) (*csv.Reader) {
 	cr := csv.NewReader(r)
 	cr.Comma = rune('\t')
@@ -37,23 +39,6 @@ func OpenCsv(r io.Reader) (*csv.Reader) {
 	return cr
 }
 
-
-// func Open(rcm ReadCloserMaker) (*csv.Reader, *gzip.Reader, *os.File, error) {
-// 	h := handle("Open: %w")
-// 
-// 	f, e := os.Open(rcm)
-// 	if e != nil { return nil, nil, nil, h(e) }
-// 
-// 	gr, e := gzip.NewReader(f)
-// 	if e != nil {
-// 		f.Close()
-// 		return nil, nil, nil, h(e)
-// 	}
-// 
-// 	cr := OpenCsv(gr)
-// 
-// 	return cr, gr, f, nil
-// }
 
 // Take a set of column names that you want to identify by
 // number and give a function that provides those indices for a table with column names specified by "line"
@@ -143,6 +128,7 @@ func IdColsFunc(idnames []string) func(line []string, buf []int) ([]int, error) 
 	return NamedColsFunc(idnames)
 }
 
+// Create a safely initialized NamedValSet
 func NewNamedValSet() *NamedValSet {
 	s := new(NamedValSet)
 	s.Sums = make(map[string]float64)

@@ -10,18 +10,10 @@ import (
 	"strconv"
 )
 
-func ParseInfoLine(line []string, keycol int) (key string, err error) {
-	h := handle("ParseExpSexLine: %w")
-
-	if len(line) <= keycol {
-		return "", h(fmt.Errorf("len(line) %v < keycol %v", len(line), keycol))
-	}
-
-	return line[keycol], nil
-}
-
+// For all rows of an info table, extract a key from keycol. Then, make a map
+// with that key as the map key and that line as the map value
 func GetInfoMap(rcm ReadCloserMaker, keycol int) (map[string][]string, error) {
-	h := handle("GetExperimentSexInfo: %w")
+	h := handle("GetInfoMap: %w")
 
 	m := map[string][]string{}
 
@@ -34,23 +26,27 @@ func GetInfoMap(rcm ReadCloserMaker, keycol int) (map[string][]string, error) {
 
 	for l, e := cr.Read(); e != io.EOF; l, e = cr.Read() {
 		if e != nil { return nil, h(e) }
+		if len(l) <= keycol {
+			return nil, h(fmt.Errorf("len(l) %v < keycol %v; l %v", len(l), keycol, l))
+		}
 
-		key, e := ParseInfoLine(l, keycol)
-		if e != nil { return nil, h(e) }
+		key := l[keycol]
 		m[key] = l
 	}
 	return m, nil
 }
 
-func GetColsToAppend(line []string, m map[string][]string, keycol int, valcols []int) ([]string, error) {
-	h := handle("GetExpSex: %w")
+// Get a key from line[keycol], then find that key in idmap and extract all of
+// the values at the indices of valcols.
+func GetColsToAppend(line []string, idmap map[string][]string, keycol int, valcols []int) ([]string, error) {
+	h := handle("GetColsToAppend: %w")
 
 	if len(line) <= keycol {
 		return nil, h(fmt.Errorf("len(line) %v < keycol %v", len(line), keycol))
 	}
 
 
-	idline, ok := m[line[keycol]]
+	idline, ok := idmap[line[keycol]]
 	if !ok {
 		return make([]string, len(valcols)), nil
 	}
@@ -66,6 +62,7 @@ func GetColsToAppend(line []string, m map[string][]string, keycol int, valcols [
 	return out, nil
 }
 
+// Append all the requested id columns to the data read in r, using line[keycol] to identify the right info in infoMap.
 func AddIdCols(r io.Reader, w io.Writer, keycol int, idcolnames []string, idcols []int, infoMap map[string][]string) error {
 	h := handle("RunTrueIdentity: %w")
 
@@ -95,9 +92,10 @@ func AddIdCols(r io.Reader, w io.Writer, keycol int, idcolnames []string, idcols
 	return nil
 }
 
+// Get comma-separated integers from a string
 func ParseValCols(str string) ([]int, error) {
 	spl := strings.Split(str, ",")
-	var out []int
+	out := make([]int, 0, len(spl))
 	for _, vcstr := range spl {
 		vc, e := strconv.Atoi(vcstr)
 		if e != nil {
@@ -108,6 +106,7 @@ func ParseValCols(str string) ([]int, error) {
 	return out, nil
 }
 
+// Run AddIdCols on the command line
 func RunAddIdCols() {
 	ipathp := flag.String("si", "", "path to sample ID file")
 	idKeyColp := flag.Int("idkey", -1, "Key column in ID file")

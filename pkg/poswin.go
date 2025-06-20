@@ -8,6 +8,7 @@ import (
 	"encoding/csv"
 )
 
+// Calculate the window that any given position belongs to, assuming tiled windows
 func PosWinOne(line []string, col int, winsize int) (int, error) {
 	h := handle("CombineOne: %w")
 
@@ -18,6 +19,7 @@ func PosWinOne(line []string, col int, winsize int) (int, error) {
 	return (int(p) / winsize) * winsize, nil
 }
 
+// CalculatePosWinOne for all lines in rcm
 func PosWin(rcm ReadCloserMaker, w io.Writer, colf func([]string, []int) (int, error), winsize int) error {
 	h := handle("PosWin: %w")
 
@@ -52,6 +54,7 @@ func PosWin(rcm ReadCloserMaker, w io.Writer, colf func([]string, []int) (int, e
 	return nil
 }
 
+// Run PosWin with a named column
 func RunPosWin(rcm ReadCloserMaker, w io.Writer, colname string, winsize int) error {
 	h := handle("RunColCombine: %w")
 

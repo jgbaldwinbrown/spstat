@@ -11,10 +11,12 @@ import (
 	"strconv"
 )
 
+// Predict a y value based on an x value and coefficients for the model y ~ x
 func Predict(x, m, b float64) float64 {
 	return (x * m) + b
 }
 
+// Predict y for based on an x column for the linear model y ~ x
 func LinearModelPredict(rcm ReadCloserMaker, w io.Writer, indepcol int, m, b float64) (err error) {
 	h := handle("LinearModelResiduals: %w")
 
@@ -54,23 +56,12 @@ type modelParam struct {
 	B float64
 }
 
+// Write the coefficients of a linear model to a path
 func WriteModelPath(path string, m, b float64) (err error) {
-	out := modelParam{m, b}
-	w, e := os.Create(path)
-	if e != nil {
-		return e
-	}
-	defer func() {
-		e := w.Close()
-		if err == nil {
-			err = e
-		}
-	}()
-
-	_, e = fmt.Fprintf(w, "%#v\n", out)
-	return e
+	return os.WriteFile(path, []byte(fmt.Sprintf("{M: %v, X: %v}\n", m, b)), 0644)
 }
 
+// Rescale a set of data by generating a linear model val ~ indep, then writing the predictions of that linear model
 func RescaleData(rcm ReadCloserMaker, w io.Writer, modelOutPath string, valcolname, indepcolname string) error {
 	h := handle("RescaleData: %w")
 
@@ -94,6 +85,7 @@ func RescaleData(rcm ReadCloserMaker, w io.Writer, modelOutPath string, valcolna
 	return nil
 }
 
+// Like RescaleData, but for numbered columns
 func RescaleDataResultFile(rcm ReadCloserMaker, w io.Writer, modelOutPath string, valcol, indepcol int) error {
 	h := handle("RescaleDataResultFile: %w")
 
@@ -111,7 +103,7 @@ func RescaleDataResultFile(rcm ReadCloserMaker, w io.Writer, modelOutPath string
 	return nil
 }
 
-type ScaleEmpiricalFlags struct {
+type scaleEmpiricalFlags struct {
 	Valcolname string
 	Indepcolname string
 	Path string
@@ -119,8 +111,9 @@ type ScaleEmpiricalFlags struct {
 	ModelOutPath string
 }
 
+// Scale data to match empirical results
 func RunScaleEmpirical() {
-	var f ScaleEmpiricalFlags
+	var f scaleEmpiricalFlags
 	flag.StringVar(&f.Valcolname, "v", "", "Name of column with empirical, known values, i.e., 100% x representation for females")
 	flag.StringVar(&f.Indepcolname, "i", "", "Name of column with estimated values")
 	flag.StringVar(&f.Path, "p", "", "Input path")

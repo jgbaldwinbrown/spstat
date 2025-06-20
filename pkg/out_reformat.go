@@ -7,6 +7,7 @@ import (
 	"strings"
 )
 
+// Reformat output so that l[1] is separated by '_' and appended to the line
 func Reformat(r io.Reader, w io.Writer) error {
 	h := handle("Reformat: %w")
 
@@ -33,6 +34,7 @@ func Reformat(r io.Reader, w io.Writer) error {
 	return nil
 }
 
+// Run Reformat on the command line
 func RunReformat() {
 	e := Reformat(os.Stdin, os.Stdout)
 	if e != nil { panic(e) }

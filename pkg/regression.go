@@ -9,6 +9,7 @@ import (
 	"strconv"
 )
 
+// Calculate the T summary needed for a linear regression for each of the specified columns
 func CalcFullColTSummary(rcm ReadCloserMaker, cols []int) ([]*TSummary, error) {
 	h := handle("CalcTSummary: %w")
 
@@ -42,6 +43,8 @@ func CalcFullColTSummary(rcm ReadCloserMaker, cols []int) ([]*TSummary, error) {
 	return tsums, nil
 }
 
+// All the intermediate statistics needed to calculate a simple linear model of
+// y ~ x
 type LinearModeler struct {
 	XDiffYDiffSum float64
 	XDiffSqSum float64
@@ -50,6 +53,7 @@ type LinearModeler struct {
 	YMean float64
 }
 
+// Add another data point to the linear model
 func (m *LinearModeler) Add(y, x float64) {
 	xdiff := x - m.XMean
 	ydiff := y - m.YMean
@@ -58,12 +62,14 @@ func (m *LinearModeler) Add(y, x float64) {
 	m.Count++
 }
 
+// Calculate the m and b coefficients from the model
 func (l *LinearModeler) MB() (m float64, b float64) {
 	m = l.XDiffYDiffSum / l.XDiffSqSum
 	b = l.YMean - (m * l.XMean)
 	return m, b
 }
 
+// Calculate the linear model using the pre-calculated means for each column
 func LinearModelCore(rcm ReadCloserMaker, valcol, indepcol int, vmean, imean float64) (m, b float64, err error) {
 	h := handle("LinearModelCore: %w")
 
@@ -95,6 +101,7 @@ func LinearModelCore(rcm ReadCloserMaker, valcol, indepcol int, vmean, imean flo
 
 }
 
+// Calculate the linear model coefficients for a table
 func LinearModel(rcm ReadCloserMaker, valcol, indepcol int) (m, b float64, err error) {
 	h := handle("LinearModel: %w")
 
@@ -108,11 +115,13 @@ func LinearModel(rcm ReadCloserMaker, valcol, indepcol int) (m, b float64, err e
 	return m, b, nil
 }
 
+// Get the residuals for a pair of y and x values, given the m and b coefficients of a linear model
 func OneLinearModelResidual(y, x, m, b float64) float64 {
 	predict := (x * m) + b
 	return y - predict
 }
 
+// Calculate and append all of the residuals for a linear model
 func LinearModelResiduals(rcm ReadCloserMaker, w io.Writer, valcol, indepcol int, m, b float64) (err error) {
 	h := handle("LinearModelResiduals: %w")
 
@@ -152,6 +161,7 @@ func LinearModelResiduals(rcm ReadCloserMaker, w io.Writer, valcol, indepcol int
 	return nil
 }
 
+// Run the whole linear model pipeline (get the named columns, find the linear model coefficients, then append residuals)
 func RunLinearModel(rcm ReadCloserMaker, w io.Writer, valcolname, indepcolname string) error {
 	h := handle("RunLinearModel: %w")
 

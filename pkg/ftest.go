@@ -7,14 +7,17 @@ import (
 	"math"
 )
 
+// The core of an f test -- calculate sd1^2 / sd2^2
 func FTestCore(sd1, sd2 float64) float64 {
 	return (sd1 * sd1) / (sd2 * sd2)
 }
 
+// Find cases where the degrees of freedom are 0, nan, or inf
 func BadDF(df float64) bool {
 	return df <= 0 || math.IsNaN(df) || math.IsInf(df, 0)
 }
 
+// Get the p-value from the outcome of an f test using the distribution of f.
 func FTestP(f, df1, df2 float64) float64 {
 	if BadDF(df1) || BadDF(df2) {
 		return math.NaN()
@@ -27,10 +30,12 @@ func FTestP(f, df1, df2 float64) float64 {
 	return 2 * cdf
 }
 
+// Calculate the degrees of freedom in an F test.
 func FTestDf(ts1 *TSummary, id1 string, ts2 *TSummary, id2 string) (df1, df2 float64) {
 	return ts1.Counts[id1] - 1, ts2.Counts[id2] - 1
 }
 
+// Calculate an F test for one TTestSet. Print to w.
 func FTest(w io.Writer, tsums []*TSummary, testset TTestSet) error {
 	i1, name1 := TsumsSet(tsums, testset.Control)
 	i2, name2 := TsumsSet(tsums, testset.Exp)
@@ -54,6 +59,7 @@ func FTest(w io.Writer, tsums []*TSummary, testset TTestSet) error {
 	return nil
 }
 
+// Run FTest on each of testsets.
 func FTests(w io.Writer, tsums []*TSummary, testsets []TTestSet) error {
 	for _, tset := range testsets {
 		e := FTest(w, tsums, tset)
@@ -64,6 +70,7 @@ func FTests(w io.Writer, tsums []*TSummary, testsets []TTestSet) error {
 	return nil
 }
 
+// Run the whole FTest pipeline
 func RunFTest(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames []string, controlsetidx, testsetidx int) error {
 	h := handle("Run: %w")
 
@@ -82,6 +89,7 @@ func RunFTest(rcm ReadCloserMaker, w io.Writer, valcolname string, idcolsnames [
 	return nil
 }
 
+// Same as RunFTest, but with controlsetidx and testsetidx set to 0 and 1
 func RunFullFTest(rcm ReadCloserMaker, w io.Writer, valcolname, bloodcolname, testcolname string) error {
 	idcolsnames := []string{bloodcolname, testcolname}
 	return RunFTest(rcm, w, valcolname, idcolsnames, 0, 1)
