@@ -9,22 +9,26 @@ import (
 	"strconv"
 )
 
+// Identifies a sample by its position on a 96-well plate
 type ExpSexId struct {
 	PlateId string
 	Let string
 	Num int
 }
 
+// Identifies a sample according the experiment done, the sex, and the individual ID
 type ExpSexEntry struct {
 	Exp string
 	Sex string
 	Indiv string
 }
 
+// A mapping between plate position and experiment, sex, and individual
 type ExpSexSet struct {
 	M map[ExpSexId]ExpSexEntry
 }
 
+// Parse a row of a table of positions and experiment, sex, and individual info
 func ParseExpSexLine(line []string) (ExpSexId, ExpSexEntry, error) {
 	h := handle("ParseExpSexLine: %w")
 
@@ -40,6 +44,7 @@ func ParseExpSexLine(line []string) (ExpSexId, ExpSexEntry, error) {
 	return ExpSexId{line[0], line[1], num}, ExpSexEntry{line[3], line[4], line[5]}, nil
 }
 
+// Parse a full table of positions and experiment, sex, and individual
 func GetExperimentSexInfo(rcm ReadCloserMaker) (*ExpSexSet, error) {
 	h := handle("GetExperimentSexInfo: %w")
 
@@ -61,6 +66,7 @@ func GetExperimentSexInfo(rcm ReadCloserMaker) (*ExpSexSet, error) {
 	return s, nil
 }
 
+// Parse just experiment, sex, and individual from the master data table of sample identities
 func (s *ExpSexSet) GetExpSex(line []string) (exp, sex, indiv string, err error) {
 	h := handle("GetExpSex: %w")
 
@@ -78,6 +84,10 @@ func (s *ExpSexSet) GetExpSex(line []string) (exp, sex, indiv string, err error)
 	return es.Exp, es.Sex, es.Indiv, nil
 }
 
+// Extract the mapping from plate position to identity from
+// experimentSexInfoPath, then use that mapping to convert the master data
+// table in r to hold the true identities, rather than the original, mistaken
+// identities
 func TrueIdentity(r io.Reader, w io.Writer, experimentSexInfoPath string) error {
 	h := handle("RunTrueIdentity: %w")
 
@@ -142,47 +152,10 @@ func TrueIdentity(r io.Reader, w io.Writer, experimentSexInfoPath string) error 
 	return nil
 }
 
-// 			l[0],
-// 			l[1],
-// 			l[2],
-// 			l[3],
-// 			l[4],
-// 			l[5],
-// 			l[17],
-// 			l[18],
-// 			exp,
-// 			sex,
-// 			indiv,
-// 			l[16],
-// 			l[21],
-// 			l[20],
-
+// Run TrueIdentity on the command line
 func RunTrueIdentities() {
 	ipathp := flag.String("si", "", "path to sample exp sex identities, columns should be plate id num, plate letter, plate col num, exp, sex, indiv")
 	flag.Parse()
 	e := TrueIdentity(os.Stdin, os.Stdout, *ipathp)
 	if e != nil { panic(e) }
 }
-
-// #     1	probeset_id	1
-// #     2	Chromosome	2
-// #     3	Position	3
-// #     4	Offset	4
-// #     5	Big_Offset	5
-// #     6	afrac	6, RENAME
-// #     7	let	
-// #     8	num	
-// #     9	experiment	FILLIN
-// #    10	sex	FILLIN
-// #    11	tissue	
-// #    12	indivs	FILLIN
-// #    13	unique_id	13
-// #    14	plate_id	
-// #    15	name_prefix	
-// #    16	spoofed_tissue	
-// #    17	true_plate	14
-// #    18	true_letter	7
-// #    19	true_number	8
-// #    20	true_tissue	11
-// #    21	spoofed_tissue_2	16
-// #    22	true_name_prefix	15

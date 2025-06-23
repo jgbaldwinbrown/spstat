@@ -208,6 +208,7 @@ func TTest(w io.Writer, tsums []*TSummary, testset TTestSet) error {
 	return nil
 }
 
+// Perform multiple T tests, one for each testset
 func TTests(w io.Writer, tsums []*TSummary, testsets []TTestSet) error {
 	for _, tset := range testsets {
 		e := TTest(w, tsums, tset)

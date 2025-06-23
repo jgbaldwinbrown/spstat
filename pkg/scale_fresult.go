@@ -11,11 +11,13 @@ import (
 	"strconv"
 )
 
+// A named linear model with an arbitrary number of coefficients, one per named probe
 type Model struct {
 	Name string
 	Coeffs []float64
 }
 
+// Parse all coefficients associated with a named probe, usually two coefficients where coeff[0] is the intercept and coeff[1] is the slope
 func ParseCoeffs(fields []string) ([]float64, error) {
 	h := handle("ParseCoeffs: %w")
 	var coeffs []float64
@@ -28,6 +30,7 @@ func ParseCoeffs(fields []string) ([]float64, error) {
 	return coeffs, nil
 }
 
+// Parse a full model, usually from a line where l[0] == name, l[1] == intercept, and l[2] == slope
 func ParseModel(line []string) (Model, error) {
 	h := handle("ParseModel: %w")
 	if len(line) < 1 {
@@ -40,6 +43,7 @@ func ParseModel(line []string) (Model, error) {
 	return Model{line[0], coeffs}, nil
 }
 
+// Parse a model for each named probe using ParseModel
 func ReadModel(r io.Reader) ([]Model, error) {
 	h := handle("ReadModel: %w")
 	cr := OpenCsv(r)
@@ -55,6 +59,7 @@ func ReadModel(r io.Reader) ([]Model, error) {
 	return models, nil
 }
 
+// Run ReadModel on rcm.NewReadCloser()
 func ReadModelPath(rcm ReadCloserMaker) ([]Model, error) {
 	h := handle("ReadModelPath: %w")
 
@@ -65,6 +70,7 @@ func ReadModelPath(rcm ReadCloserMaker) ([]Model, error) {
 	return ReadModel(r)
 }
 
+// Generate a mapping of probe name to coefficient slice for each model
 func MapProbeToCoeffs(models []Model) map[string][]float64 {
 	m := map[string][]float64{}
 	for _, model := range models {
@@ -73,16 +79,19 @@ func MapProbeToCoeffs(models []Model) map[string][]float64 {
 	return m
 }
 
+// A chromosome and position in a genome
 type ChrPos struct {
 	Chr string
 	Pos string
 }
 
+// A named chromosome and position in a genome
 type ProbeChrPos struct {
 	Probe string
 	ChrPos
 }
 
+// Get probe name, chromosome, and position from a tab-separated table where line[0] is probe name, line[4] is chr, and line[5] is pos
 func ReadProbeChrPos(rcm ReadCloserMaker) ([]ProbeChrPos, error) {
 	h := handle("ReadProbeInfo: %w")
 
@@ -109,6 +118,7 @@ func ReadProbeChrPos(rcm ReadCloserMaker) ([]ProbeChrPos, error) {
 	return pcps, nil
 }
 
+// Get a mapping from genome position to probe name
 func MapChrPosToProbe(pcps []ProbeChrPos) map[ChrPos]string {
 	m := map[ChrPos]string{}
 	for _, pcp := range pcps {
@@ -117,10 +127,12 @@ func MapChrPosToProbe(pcps []ProbeChrPos) map[ChrPos]string {
 	return m
 }
 
+// Remove the remainder of val % step from val (good for finding window start points)
 func Truncate(val int, step int) int {
 	return (val / step) * step
 }
 
+// Find all of the named probes that fit in each tiled window
 func MapChrPosWinToProbe(pcps []ProbeChrPos, winsize int) map[ChrPos][]string {
 	m := map[ChrPos][]string{}
 	for _, pcp := range pcps {
@@ -132,6 +144,7 @@ func MapChrPosWinToProbe(pcps []ProbeChrPos, winsize int) map[ChrPos][]string {
 	return m
 }
 
+// Find all of the probes on a chromosome
 func MapChrToProbes(pcps []ProbeChrPos) map[string][]string {
 	m := map[string][]string{}
 	for _, pcp := range pcps {
@@ -140,6 +153,7 @@ func MapChrToProbes(pcps []ProbeChrPos) map[string][]string {
 	return m
 }
 
+// Everything produced during an F test
 type FTestResult struct {
 	Name1 string
 	Name2 string
@@ -155,6 +169,8 @@ type FTestResult struct {
 	P float64
 }
 
+// Read the results of an F test from a line in a table (the order of tab-separated
+// entries is the same as the order of fields in FTestResult)
 func ParseFTestResult(line string) (FTestResult, error) {
 	r := FTestResult{}
 	_, e := fmt.Sscanf(line, "%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\t%v\n",
@@ -169,6 +185,7 @@ func ParseFTestResult(line string) (FTestResult, error) {
 	return r, e
 }
 
+// Read all F test results from a table using ParseFTestResult
 func ReadFTestResults(r io.Reader) ([]FTestResult, error) {
 	h := handle("ReadFTestResults: %w")
 	results := []FTestResult{}
@@ -183,12 +200,14 @@ func ReadFTestResults(r io.Reader) ([]FTestResult, error) {
 	return results, nil
 }
 
+// The scaled standard deviation difference between two datasets
 type ScaledFTest struct {
 	Name1 string
 	Name2 string
 	ScaledSdDiff float64
 }
 
+// From a set of named coefficient lists, average all of map[ent][1] (the slopes)
 func MeanSlope(probes []string, probeToCoeffMap map[string][]float64) (float64, error) {
 	if len(probes) < 1 {
 		return 0, fmt.Errorf("MeanSlope: No probes")
@@ -210,17 +229,22 @@ func MeanSlope(probes []string, probeToCoeffMap map[string][]float64) (float64, 
 	return sum / count, nil
 }
 
+// Convert an F test result into a scaled standard deviation difference, where
+// the scale factor is (-slope / 2.0)
 func ScaleSdDiff(ftest FTestResult, slope float64) float64 {
 	diff := ftest.Sd2 - ftest.Sd1
 	scaleFactor := -slope / 2.0
 	return diff * scaleFactor
 }
 
+// Convert an F test result to the scaled mean difference -- (mean2 - mean1) * slope
 func ScaleMeanDiff(ftest FTestResult, slope float64) float64 {
 	diff := ftest.Mean2 - ftest.Mean1
 	return diff * slope
 }
 
+// Generate a scaled F test based on the combination of the f test result, a
+// map of chromosome to probe, and a map of probe to coefficient (on a per-chromosome basis)
 func ScaleFTestPerChrom(ftest FTestResult, chrToProbeMap map[string][]string, probeToCoeffMap map[string][]float64) (ScaledFTest, error) {
 	h := handle("ScaleFTestPerChrom: %w")
 
@@ -245,6 +269,7 @@ func ScaleFTestPerChrom(ftest FTestResult, chrToProbeMap map[string][]string, pr
 	}, nil
 }
 
+// Run ScaleFTestPerChrom for a set of F test results
 func ScaleFTestsPerChrom(ftests []FTestResult, chrToProbeMap map[string][]string, probeToCoeffMap map[string][]float64) ([]ScaledFTest, error) {
 	h := handle("ScaleFTestsPerChrom: %w")
 	scaled := []ScaledFTest{}
@@ -258,6 +283,7 @@ func ScaleFTestsPerChrom(ftests []FTestResult, chrToProbeMap map[string][]string
 	return scaled, nil
 }
 
+// Run ScaleFTest on each chromosome-position pair
 func ScaleFTestPerChrPos(ftest FTestResult, chrPosToProbeMap map[ChrPos][]string, probeToCoeffMap map[string][]float64) (ScaledFTest, error) {
 	h := handle("ScaleFTestPerChrom: %w")
 
@@ -282,6 +308,7 @@ func ScaleFTestPerChrPos(ftest FTestResult, chrPosToProbeMap map[ChrPos][]string
 	}, nil
 }
 
+// Run ScaleFTestPerChrPos for each of a set of FTestResults
 func ScaleFTestsPerChrPos(ftests []FTestResult, chrPosToProbeMap map[ChrPos][]string, probeToCoeffMap map[string][]float64) ([]ScaledFTest, error) {
 	h := handle("ScaleFTestsPerChrom: %w")
 	scaled := []ScaledFTest{}
@@ -295,6 +322,7 @@ func ScaleFTestsPerChrPos(ftests []FTestResult, chrPosToProbeMap map[ChrPos][]st
 	return scaled, nil
 }
 
+// Write scaled F tests to a tab-separated table
 func WriteScaled(w io.Writer, scaled []ScaledFTest) error {
 	for _, s := range scaled {
 		_, e := fmt.Fprintf(w, "%v\t%v\t%v\n", s.Name1, s.Name2, s.ScaledSdDiff)
@@ -303,6 +331,7 @@ func WriteScaled(w io.Writer, scaled []ScaledFTest) error {
 	return nil
 }
 
+// Write both the basic F test and the scaled F test to a tab-separated table
 func WriteScaled2(w io.Writer, ftests []FTestResult, scaled []ScaledFTest) error {
 	h := handle("WriteScaled2: %w")
 	if len(ftests) != len(scaled) {
@@ -331,6 +360,8 @@ func WriteScaled2(w io.Writer, ftests []FTestResult, scaled []ScaledFTest) error
 	return nil
 }
 
+// Get the name to provide for the identity column. If unwindowed, it should be
+// indiv_chrom_tissue_poswin. Otherwise, it should be "indiv_chrom_tissue"
 func GetName2(winsize int) string {
 	name2 := "indiv_chrom_tissue"
 	if winsize != -1 {
@@ -339,6 +370,7 @@ func GetName2(winsize int) string {
 	return name2
 }
 
+// If you're doing a T test, the stat is "t", otherwise "f"
 func GetStat(ttest bool) string {
 	stat := "f"
 	if ttest {
@@ -347,6 +379,7 @@ func GetStat(ttest bool) string {
 	return stat
 }
 
+// If you're doing a T test, scale means; otherwise, scale standard deviations
 func GetDiff(ttest bool) string {
 	diff := "scaled_sd_diff"
 	if ttest {
@@ -355,6 +388,7 @@ func GetDiff(ttest bool) string {
 	return diff
 }
 
+// print the header for the F or T test results
 func PrintHead(w io.Writer, ttest bool, outfmt string, winsize int) error {
 	if outfmt == "2" {
 		return PrintHeadOf2(w, ttest, winsize)
@@ -362,6 +396,7 @@ func PrintHead(w io.Writer, ttest bool, outfmt string, winsize int) error {
 	return PrintHeadOf1(w, ttest, winsize)
 }
 
+// Print the header using the outfmt == "1" setting
 func PrintHeadOf1(w io.Writer, ttest bool, winsize int) error {
 	name2 := GetName2(winsize)
 	diff := GetDiff(ttest)
@@ -373,6 +408,7 @@ func PrintHeadOf1(w io.Writer, ttest bool, winsize int) error {
 	return e
 }
 
+// Print the header using the outfmt == "2" setting
 func PrintHeadOf2(w io.Writer, ttest bool, winsize int) error {
 	name2 := GetName2(winsize)
 	stat := GetStat(ttest)
@@ -391,7 +427,7 @@ func PrintHeadOf2(w io.Writer, ttest bool, winsize int) error {
 	return e
 }
 
-
+// Run the entire F test scaling program on the command line
 func RunScaleFTests() {
 	pheadp := flag.Bool("ph", false, "Print header for output format")
 	probepp := flag.String("p", "", "probe info path")
@@ -454,6 +490,7 @@ func RunScaleFTests() {
 	if e != nil { panic(e) }
 }
 
+// Scale one FTestResult using ScaleMeanDiff
 func ScaleTTestPerChrom(ftest FTestResult, slope float64) (ScaledFTest, error) {
 	return ScaledFTest {
 		ftest.Name1,
@@ -462,6 +499,7 @@ func ScaleTTestPerChrom(ftest FTestResult, slope float64) (ScaledFTest, error) {
 	}, nil
 }
 
+// Run ScaleTTestPerChrom on each of ftests
 func ScaleTTestsPerChrom(ftests []FTestResult, slope float64) ([]ScaledFTest, error) {
 	h := handle("ScaleFTestsPerChrom: %w")
 	scaled := []ScaledFTest{}
